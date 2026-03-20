@@ -64,7 +64,9 @@ def sync_community_playbook():
     existing_ver = re.search(r'Version:\s*([\d.]+)', existing)
 
     if template_ver and existing_ver:
-        if template_ver.group(1) > existing_ver.group(1):
+        t_parts = [int(x) for x in template_ver.group(1).split(".")]
+        e_parts = [int(x) for x in existing_ver.group(1).split(".")]
+        if t_parts > e_parts:
             # Newer version — update but preserve any user-added scores
             COMMUNITY_FILE.write_text(template_content, encoding="utf-8")
 
@@ -108,10 +110,14 @@ def detect_session_context() -> set:
 
 
 def extract_rules(content: str) -> list:
-    """Extract all scored rules with their metadata from playbook content."""
+    """Extract scored rules from the Behavioral Rules section only (not protocol examples)."""
     rules = []
+    rules_start = content.find("## Behavioral Rules")
+    if rules_start == -1:
+        return rules
+    rules_content = content[rules_start:]
     pattern = r'\*\*\[(\d+\.?\d*)\]\s+([^*]+)\*\*:\s*(.+)'
-    for match in re.finditer(pattern, content):
+    for match in re.finditer(pattern, rules_content):
         score = float(match.group(1))
         name = match.group(2).strip()
         rest = match.group(3)
@@ -268,7 +274,10 @@ def count_entries() -> int:
     if not PLAYBOOK_FILE.exists():
         return 0
     content = PLAYBOOK_FILE.read_text(encoding="utf-8")
-    return len(re.findall(r'\*\*\[\d+\.?\d*\]', content))
+    rules_start = content.find("## Behavioral Rules")
+    if rules_start == -1:
+        return 0
+    return len(re.findall(r'\*\*\[\d+\.?\d*\]', content[rules_start:]))
 
 
 def count_pending_signals() -> int:

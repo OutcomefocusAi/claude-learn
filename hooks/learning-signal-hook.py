@@ -9,7 +9,6 @@ Must complete in <100ms. Must always exit 0.
 """
 
 import json
-import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -21,22 +20,22 @@ PLAYBOOK_FILE = Path.home() / ".claude" / "rules" / "playbook.md"
 # ── Detection patterns ─────────────────────────────────────────────────────
 
 CORRECTION_PATTERNS = [
-    r"\bno[,.\s!]",
+    r"(?:^|\.\s+)no[,.\s!]",       # "No, ..." at start/after sentence — not "I have no idea"
     r"\bnot that\b",
     r"\bwrong\b",
     r"\bdon'?t\b(?!.*\byou\b.*\bthink\b)",
     r"\bstop\s+(doing|that|it)\b",
     r"\bi said\b",
     r"\bi told you\b",
-    r"\bi already\b",
+    r"\bi already (?:said|told|asked|mentioned)\b",  # "I already told" not "I already have"
     r"\bthat'?s not\b",
-    r"\binstead of\b",
+    r"\binstead of (?:doing|using|that)\b",  # Directed correction, not general "instead of X try Y"
     r"\byou should have\b",
     r"\bwhy did you\b",
     r"\bnot what i\b",
     r"\bthat was wrong\b",
-    r"\bthe other\b",
-    r"\bactually[,\s]\b",
+    r"\bthe other (?:one|way|approach|thing)\b",  # Specific correction, not "the other package"
+    r"\bactually[,\s]",             # Removed trailing \b — was preventing most matches
 ]
 
 POSITIVE_PATTERNS = [

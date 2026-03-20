@@ -13,7 +13,6 @@ Must complete in <200ms. Must always exit 0.
 """
 
 import json
-import os
 import re
 import sys
 from datetime import datetime, timezone
