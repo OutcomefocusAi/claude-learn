@@ -1,0 +1,19 @@
+{
+  "name": "claude-learn",
+  "version": "1.0.0",
+  "description": "Self-improving Claude Code — continuous learning with scored rules, mechanical detection, and boundary exploration",
+  "type": "module",
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "self-improvement",
+    "learning",
+    "adaptive"
+  ],
+  "author": "OutcomeFocus AI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OutcomeFocusAi/claude-learn"
+  }
+}
