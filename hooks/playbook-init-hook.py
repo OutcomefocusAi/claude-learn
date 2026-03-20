@@ -198,9 +198,15 @@ def apply_decay(session_ctx: set):
     # Detect regressions before modifying
     regressions = detect_regressions(rules)
 
-    # Apply decay
+    # Apply decay — only to actual rules in Behavioral Rules section,
+    # NOT to examples in the protocol documentation above it
+    rules_section_start = content.find("## Behavioral Rules")
+    if rules_section_start == -1:
+        DECAY_MARKER.write_text(str(datetime.now(timezone.utc).timestamp()))
+        return False, regressions
+
     pattern = r'\*\*\[(\d+\.?\d*)\]\s+'
-    matches = list(re.finditer(pattern, content))
+    matches = [m for m in re.finditer(pattern, content) if m.start() >= rules_section_start]
 
     archived_rules = []
     new_content = content
