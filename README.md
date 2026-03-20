@@ -1,213 +1,217 @@
 # claude-learn
 
-> **The self-improving plugin for Claude Code.** Claude gets measurably better every session — automatically.
+> **The self-improving plugin for Claude Code.** Claude gets measurably better every session — automatically. Your proven learnings help every user. Every user's learnings help you.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude_Code-Plugin-blueviolet)]()
-[![Version](https://img.shields.io/badge/version-2.0.0-green)]()
+[![Version](https://img.shields.io/badge/version-3.0.0-green)]()
 
-## The Problem
+---
 
-Claude Code starts every session with zero memory of what worked last time. You correct the same mistakes. It retries the same dead ends. Good approaches aren't captured. Bad habits aren't eliminated. Every session resets.
+## What This Does
 
-**Memory plugins** (claude-mem, episodic-memory) solve recall — they remember *what happened*. But knowing what happened doesn't change *what you do next*. That's the gap.
+Claude Code starts every session from zero. You correct the same mistakes. It retries the same dead ends. Good approaches vanish. **claude-learn fixes this.**
 
-## The Solution
-
-**claude-learn** captures behavioral rules from real outcomes, scores them based on evidence, and loads them every session. Rules that keep proving value persist. One-off flukes decay. Accumulated wisdom auto-generates new skills.
+It captures behavioral rules from real outcomes, scores them with evidence, validates across sessions, and loads them automatically. Rules that work persist. Flukes decay. Clusters of rules graduate into skills. And your proven rules feed a **community playbook** that makes everyone's Claude better.
 
 ```
-Observe → Capture → Score → Apply → Validate → Decay or Confirm → Prune or Graduate
-                                        ↑                                    |
-                                        └────────────────────────────────────┘
+Observe → Capture → Score → Validate → Decay or Confirm → Prune or Graduate
+    ↑         ↑         ↑                                        |
+    |     [3 layers]  [evidence]                                  |
+    └─────────────────────────────────────────────────────────────┘
+
+Your proven rules ──→ Community Playbook ──→ All users benefit
 ```
 
-This is a **closed feedback loop**. No other Claude Code plugin has one.
+---
+
+## Collective Intelligence
+
+**This is the headline feature no other tool has.**
+
+When your rules reach "proven" status (validated across 3+ sessions, score 3.0+), you can contribute them to the community playbook. Other users receive them on their next plugin update. Their Claude validates the rules independently — good rules survive, bad ones decay per-user.
+
+**A rule validated by many independent users across different projects is essentially a universal law of AI coding assistance.**
+
+### How It Works
+
+```
+You use Claude normally
+    ↓
+Rules accumulate in your personal playbook (scored, validated)
+    ↓
+Rules reach "proven" status (score 3.0+, sessions >= 3)
+    ↓
+Run /learn contribute → selects your best generalized rules
+    ↓
+Submitted as GitHub issue or PR to claude-learn repo
+    ↓
+Maintainer reviews, deduplicates, merges
+    ↓
+Plugin update delivers new community rules to ALL users
+    ↓
+Each user's Claude validates independently
+    ↓
+Rules that work for many people = universal truth
+```
+
+### How to Contribute
+
+```bash
+# In Claude Code, run:
+/learn contribute
+
+# Claude will:
+# 1. Show your proven rules (score 3.0+, 3+ sessions)
+# 2. Filter out anything too specific to your setup
+# 3. Generalize the wording for universal use
+# 4. Create a GitHub issue on this repo with formatted rules
+
+# For repo contributors with write access:
+# Edit templates/playbook-community.md directly and submit a PR
+```
+
+### Two Playbooks, One System
+
+| Playbook | File | Source | Priority |
+|----------|------|--------|----------|
+| **Personal** | `~/.claude/rules/playbook.md` | Your sessions | **Highest** — always wins conflicts |
+| **Community** | `~/.claude/rules/playbook-community.md` | All contributors | Baseline — must prove itself to you |
+
+Both auto-load every session. Personal rules take priority. Community rules start at score 1.0 on your system and must earn their way up through your usage.
+
+---
 
 ## Why This Is Better Than Every Alternative
 
-### vs. Homunculus (311 stars)
-Homunculus captures "instincts" as YAML rules but **never validates them**. Instincts accumulate forever with no scoring, no decay, no way to know which ones actually help. claude-learn scores every rule, confirms across multiple sessions, decays stale ones, and prunes automatically.
-
-### vs. codesurf-insights
-Retrospective only — analyzes conversation logs after the session. No real-time capture, no scoring, no structure. Just text appended to CLAUDE.md.
-
-### vs. claude-self-improve
-Improves the **code**, not Claude's **behavior**. Proposes PRs for code quality. Different goal entirely.
-
-### vs. claude-mem / episodic-memory
-Complementary, not competitive. Memory plugins are the **diary** ("what happened"). claude-learn is the **training program** ("what to do differently"). Use both.
-
-## Feature Comparison
-
 | Capability | claude-learn | Homunculus | codesurf-insights | claude-mem |
 |-----------|-------------|-----------|-------------------|-----------|
-| Real-time learning capture | **3 layers** | 1 layer | Post-session | N/A (memory, not learning) |
-| Scored rules with evidence tracking | **Yes** | No | No | No |
-| Outcome-based learning (tool results) | **Yes** | No | No | No |
-| Graduated trust (multi-session validation) | **Yes** | No | No | No |
+| Real-time learning (3 layers) | **Yes** | 1 layer | Post-session | N/A |
+| Scored rules with evidence | **Yes** | No | No | No |
 | Closed feedback loop | **Yes** | No | No | No |
+| Collective intelligence | **Yes** | No | No | No |
+| Second-order learning (meta-rules) | **Yes** | No | No | No |
+| Causal chain capture | **Yes** | No | No | No |
 | Context-aware decay | **Yes** | No | No | No |
-| Auto-skill generation from patterns | **Yes** | Partial | No | No |
-| Retry/churn detection | **Yes** | No | No | No |
-| Success capture (not just failures) | **Yes** | No | No | No |
-| Token-budgeted with auto-pruning | **Yes** | No | No | No |
-| Rule self-verification | **Yes** | No | No | No |
+| Regression detection | **Yes** | No | No | No |
+| Anticipatory execution | **Yes** | No | No | No |
+| Workflow generation from rule chains | **Yes** | No | No | No |
+| Negative space / uncertainty tracking | **Yes** | No | No | No |
+| Session quality correlation | **Yes** | No | No | No |
 | Structured A/B experiments | **Yes** | No | No | No |
-| Boundary exploration protocol | **Yes** | No | No | No |
-| Meta-learning (learns about learning) | **Yes** | No | No | No |
+| Auto-skill generation | **Yes** | Partial | No | No |
+| Graduated trust (multi-session) | **Yes** | No | No | No |
+| Outcome-based learning | **Yes** | No | No | No |
+| Token-budgeted auto-pruning | **Yes** | No | No | No |
 | Memory system integration | **Yes** | No | No | N/A |
-| Generalization protocol | **Yes** | No | No | No |
 
-## How It Works
+### In Plain English
+
+- **Homunculus** captures observations but never validates them. You get a growing pile of unverified notes.
+- **codesurf-insights** analyzes logs after the fact. No real-time learning.
+- **claude-mem** remembers what happened. It doesn't change what Claude does next.
+- **claude-learn** changes behavior based on evidence. And shares proven behavior with everyone.
+
+---
+
+## Architecture
 
 ### Three Detection Layers
 
-Learning capture is near-bulletproof because it doesn't rely on a single mechanism:
+**Layer 1: Behavioral Protocol** — The playbook auto-loads as a rules file. Contains 19 protocol sections that instruct Claude how to capture, score, generalize, verify, and evolve learnings.
 
-**Layer 1: Behavioral Protocol** (primary — always active)
-The playbook auto-loads as a rules file every session. It contains detailed instructions for Claude to capture learnings the instant they occur: corrections, failures, discoveries, success patterns, speed wins, user preferences.
+**Layer 2: Language Detection Hook** (UserPromptSubmit) — Scans every user message for corrections, frustration, and positive reinforcement. Injects `[Learning signal]` reminders.
 
-**Layer 2: Language Detection Hook** (safety net — UserPromptSubmit)
-A Python hook mechanically scans every user message for:
-- **Corrections**: "no", "wrong", "don't", "I said", "actually"
-- **Frustration**: "again?", "how many times", "you keep"
-- **Positive reinforcement**: "perfect", "exactly", "nailed it"
+**Layer 3: Outcome Tracking Hook** (PostToolUse) — Detects test/build/deploy results, retry patterns (3x+), edit churn (5x+), install failures, lint results.
 
-Outputs `[Learning signal]` reminders that Claude cannot ignore. Even if Claude is deep in a complex task and "forgets" to capture, the hook catches it.
+### Learning Levels
 
-**Layer 3: Outcome Tracking Hook** (ground truth — PostToolUse)
-A second hook tracks what actually happened with tools:
-- **Tests**: pass/fail with counts
-- **Builds**: success/failure with error context
-- **Deploys**: success/failure
-- **Retry patterns**: same operation attempted 3+ times = wrong approach
-- **Edit churn**: same file edited 5+ times = unclear thinking
-- **Install failures**, **lint results**, and more
+| Level | What | Example |
+|-------|------|---------|
+| **Rule** | Single behavioral instruction | "Run tests after every edit" |
+| **Meta-Rule** | Abstraction across 3+ similar rules | "Before calling any external dependency, verify it's available" |
+| **Workflow** | Linked chain of rules with order | "lint → test → coverage → commit" |
+| **Causal Rule** | Upstream prevention instead of downstream handling | "Use CLI to add deps, not manual edits — prevents sync issues" |
+| **Anticipatory Rule** | Proactive setup before the situation arises | "When entering video work, measure all audio durations upfront" |
 
-This captures **success**, not just failure. When tests pass on the first try, that's a learnable pattern.
-
-### Scoring System
-
-Every rule earns and loses points based on real-world evidence:
+### Scoring
 
 | Event | Points |
 |-------|--------|
-| User correction (highest signal) | +2.0 |
+| User correction | +2.0 |
 | Boundary experiment succeeded | +2.0 |
-| Failure→recovery pattern captured | +1.5 |
-| Capability discovery | +1.5 |
-| Rule confirmed (applied, prevented mistake) | +1.0 |
-| Success outcome captured | +1.0 |
-| Rule violation (had rule, didn't follow it) | +1.0 to existing rule |
-| Session loaded, rule not triggered | -0.1 (-0.05 if proven) |
-| Score drops below 1.0 | Archived |
-| Score drops below 0 | Deleted |
+| Failure→recovery | +1.5 |
+| Discovery | +1.5 |
+| Confirmed / success outcome | +1.0 |
+| Not triggered (context-aware) | -0.1 (-0.05 if proven) |
+| Below 1.0 → archived | Below 0 → deleted |
 
-### Graduated Trust
-A rule needs confirmation in **3+ distinct sessions** to be "proven." Proven rules decay at half speed. This prevents a single lucky session from creating permanent behavior.
+### Safety Mechanisms
 
-### Context-Aware Decay
-Rules tagged with `ctx: react` only decay during React sessions. A Remotion video rule won't lose points while you're debugging Python. The SessionStart hook detects project context from your working directory automatically.
+- **Graduated trust**: Rules need 3+ session confirmations to be "proven"
+- **Context-aware decay**: Remotion rules don't decay during Python work
+- **Regression detection**: Flags proven rules that stopped being confirmed
+- **Uncertainty tracking**: Explicit "I don't know" prevents confident mistakes
+- **Session quality tracking**: Catches rules that are followed but counterproductive
 
-### Generalization Protocol
-Every learning is generalized before capture. Claude is instructed to ask: *"If I saw a DIFFERENT task with the SAME shape, would this rule apply?"*
-
-- **Bad**: "In user's Remotion project, measure pb-01-intro.mp3 before writing PottioBoxDemo"
-- **Good**: "For any video composition with audio sync: ALWAYS measure audio durations before writing timing code"
-
-### Rule Self-Verification
-After completing a task or recovering from an error, Claude scans the playbook for rules that *should* have applied. If a rule existed but wasn't followed, that's a rule violation — the rule's score increases and the trigger context is refined.
-
-### Structured A/B Experiments
-The Capability Frontier tracks hypotheses to test. When experiments run, they use structured comparison:
-```
-EXPERIMENT: [hypothesis]
-APPROACH A (default): [normal approach]
-APPROACH B (experiment): [new approach]
-METRIC: [tool calls | retries | corrections]
-WINNER: [A or B] because [measured reason]
-```
-
-### Auto-Skill Generation
-When 5+ rules in a single category all reach score 3.0+, Claude suggests generating a dedicated skill from them. The playbook is the nursery; graduated skills are the product.
-
-### Memory System Integration
-If claude-mem or other memory tools are available, Claude cross-references recent observations for patterns that should become playbook rules. Memory is "what happened" — the playbook is "what to do about it."
-
-### Meta-Learning
-The system tracks its own effectiveness: learning velocity per session, category strengths, blindspot detection, rule lifecycle analysis. If a category has zero rules after many sessions, frontier experiments target it.
+---
 
 ## Installation
-
-### From GitHub
 
 ```bash
 # Add marketplace
 claude plugin marketplace add OutcomeFocusAi/claude-learn
 
-# Install plugin
+# Install
 claude plugin install claude-learn@outcomefocusai
 ```
 
-### What happens on install
-
-1. Plugin registers 3 hooks (UserPromptSubmit, PostToolUse, SessionStart)
-2. First session: SessionStart hook creates `~/.claude/rules/playbook.md`
-3. Playbook auto-loads every subsequent session
-4. Learning begins immediately — zero configuration
+First session creates both playbooks automatically. Learning begins immediately.
 
 ## Usage
 
-**You don't need to do anything.** Claude learns automatically and silently. The system is invisible by default.
-
-### `/learn` — Manual Dashboard
+**Invisible by default.** Claude learns silently. Use `/learn` when you want to see what's happening.
 
 ```
-/learn           — Full review: stats, signals, session scan, auto-skill check
-/learn status    — Quick stats only
-/learn add "X"   — Manually add a learning (score 2.0)
-/learn frontier  — View/manage capability frontier
-/learn prune     — Force pruning pass (merge similar, archive weak)
-/learn meta      — Meta-learning analysis (velocity, blindspots, categories)
-/learn export    — Shareable format (all files, scores reset to 1.0)
-/learn signals   — View raw hook signals
-/learn reset     — Archive everything, start fresh
+/learn              Full review + interactive menu
+/learn status       Quick stats
+/learn add "X"      Manual rule (score 2.0)
+/learn contribute   Share proven rules with community
+/learn community    View community playbook
+/learn frontier     Capability experiments
+/learn workflows    Linked rule chains
+/learn regress      Regression alerts
+/learn meta         Learning velocity + analysis
+/learn export       Shareable format
 ```
 
-## Files Created
+## Files
 
-| File | Purpose | Auto-loaded? |
-|------|---------|-------------|
-| `~/.claude/rules/playbook.md` | Scored behavioral rules + protocol | **Yes** (every session) |
-| `~/.claude/playbook-archive.jsonl` | Decayed/pruned rules | No |
-| `~/.claude/.learning-signals.jsonl` | Pending signals from hooks | No |
-| `~/.claude/.learning-retries.json` | Retry/churn tracker | No (reset each session) |
-
-## Token Budget
-
-The playbook stays under **5,000 tokens** (~40-60 rules). When it exceeds budget, lowest-scored rules are automatically archived. Context-aware decay ensures rules only lose points when they're relevant. Proven rules decay at half speed.
+| File | Purpose | Auto-loaded |
+|------|---------|------------|
+| `~/.claude/rules/playbook.md` | Personal scored rules | **Yes** |
+| `~/.claude/rules/playbook-community.md` | Community rules | **Yes** |
+| `~/.claude/playbook-archive.jsonl` | Decayed rules | No |
+| `~/.claude/.learning-signals.jsonl` | Hook signals | No |
+| `~/.claude/.playbook-regression.json` | Regression tracker | No |
 
 ## FAQ
 
-**Will this slow down my sessions?**
-No. Hooks complete in <200ms. Learning captures cost ~300 tokens each. Even a heavy session with 10 learnings adds 3k tokens total.
+**Will this slow me down?** No. Hooks < 200ms. Captures ~ 300 tokens each.
 
-**What if I close the tab?**
-Learnings are written to the playbook file immediately (no batching). Anything captured survives. The hook signal file also persists — next session picks up unprocessed signals.
+**What if I close the tab?** Learnings write immediately to disk. No batching.
 
-**Does it work across projects?**
-Yes. The playbook is global. Context tags let rules specify when they apply. Context-aware decay means irrelevant rules don't lose points during unrelated work.
+**Cross-project?** Yes. Context tags filter relevance. Context-aware decay handles the rest.
 
-**How is this different from a CLAUDE.md file?**
-CLAUDE.md is static instructions you write manually. The playbook is dynamic rules that Claude writes, scores, validates, and prunes automatically based on real outcomes. They're complementary.
+**vs CLAUDE.md?** CLAUDE.md is static instructions you write. The playbook is dynamic rules Claude writes, scores, and prunes based on evidence. Use both.
 
-**Can I share my learnings?**
-`/learn export` outputs the complete plugin with your learned rules as seed content (scores reset to 1.0). Others install it and start with your wisdom as a baseline.
+**How do I contribute rules?** Run `/learn contribute`. It selects your proven rules, generalizes them, and creates a GitHub issue. Or submit a PR directly to `templates/playbook-community.md`.
+
+---
 
 ## Keywords
 
-Claude Code plugin, self-improving AI, adaptive AI assistant, machine learning feedback loop, AI self-improvement, scored behavioral rules, Claude Code skills, continuous learning, AI optimization, Claude Code hooks, automated learning capture, AI boundary exploration, self-improving LLM, Claude Code automation, AI workflow optimization
+Claude Code plugin, self-improving AI, adaptive AI agent, collective intelligence, community learning, scored behavioral rules, machine learning feedback loop, Claude Code skills, continuous learning, AI self-improvement, meta-learning, regression detection, causal learning, workflow generation, anticipatory execution, Claude Code hooks, AI optimization, self-improving LLM, Claude Code automation
 
 ## License
 

@@ -3,150 +3,171 @@ name: learn
 description: >
   /learn — Review, manage, and interact with the self-improvement playbook.
   Shows what Claude has learned, scored rules, capability frontier, pending
-  signals from language and outcome hooks. The learning itself happens
-  automatically via behavioral protocol and mechanical hooks — this skill
-  is for visibility, control, and meta-analysis.
+  signals, regressions, community rules. Learning happens automatically
+  via behavioral protocol and mechanical hooks — this skill is for
+  visibility, control, and contributing to collective intelligence.
 ---
 
 # /learn — Self-Improvement Dashboard
 
 ## Overview
 
-Claude continuously captures learnings via three mechanisms:
-1. **Behavioral protocol** in `~/.claude/rules/playbook.md` (auto-loaded, Claude follows capture instructions)
-2. **Language detection hook** (UserPromptSubmit) — detects corrections, frustration, positive feedback
-3. **Outcome tracking hook** (PostToolUse) — detects test/build/deploy outcomes, retry patterns, edit churn
+Claude learns continuously via three layers:
+1. **Behavioral protocol** in `~/.claude/rules/playbook.md` (auto-loaded)
+2. **Language detection hook** (UserPromptSubmit) — corrections, frustration, praise
+3. **Outcome tracking hook** (PostToolUse) — test/build/deploy results, retries, churn
 
-Learning is always happening. This skill is the control panel.
+Two playbooks auto-load:
+- **Personal**: `~/.claude/rules/playbook.md` — your rules, your scores
+- **Community**: `~/.claude/rules/playbook-community.md` — collective intelligence from all users
 
 ## When Invoked
 
 ### Step 1: Load Current State
 
-Read `~/.claude/rules/playbook.md` and `~/.claude/.learning-signals.jsonl` (if exists).
-Count archive entries from `~/.claude/playbook-archive.jsonl`.
-
-Present:
+Read both playbooks and signal files. Present:
 ```
 === Playbook Status ===
-Entries:          N rules across N categories
+Personal:         N rules across N categories (N meta-rules, N workflows)
+Community:        N universal rules
 Token usage:      ~N / 5000
 Proven rules:     N (sessions >= 3)
-Top 3 by score:   [list with scores]
-Latest 3 added:   [most recently added/updated]
+Top 3 by score:   [list]
+Latest 3 added:   [list]
+Regressions:      N rules declining (or "none")
+Uncertainties:    N tracked items
 Frontier:         N active experiments, N tested
 Archive:          N decayed rules
 Pending signals:  N unprocessed
-  - N from user language (corrections/praise)
-  - N from outcome tracking (test/build/retry/churn)
-Learning velocity: N learnings/session (last 5 sessions)
+Session context:  [detected ctx tags]
 ```
 
 ### Step 2: Process Pending Signals
 
-If there are unprocessed signals in `.learning-signals.jsonl`:
-- Group by source (user_language vs outcome)
-- For each signal type, draft a rule:
-  - **Corrections/frustrations**: "This signal suggests: [draft rule]. Capture it?"
-  - **Outcome successes**: "This succeeded — what approach made it work? [draft rule]"
-  - **Outcome failures**: "This failed — what should you do differently? [draft rule]"
-  - **Retry patterns**: "You retried this 3x+ — what's the better approach? [draft rule]"
-  - **Edit churn**: "You edited this file 5x+ — what was the root cause of churn?"
-  - **Positive feedback**: "User validated this approach — which rule does it confirm?"
-- Apply generalization principle: derive the general rule, not the specific instance
-- Process all, then clear processed entries
+Group by source, draft rules for each, apply generalization + causal chain analysis. Check for second-order patterns (3+ rules with same shape → meta-rule).
 
 ### Step 3: Session Scan
 
-Analyze the current session for learnings the hooks might have missed:
-- Approaches that were unusually fast or slow
-- New tool combinations tried
-- Boundary experiments (attempted or missed opportunities)
-- Patterns in how you solved problems
-- Rule violations (did you fail at something a playbook rule should have caught?)
+Check for uncaptured learnings, rule violations, regression patterns, workflow chain opportunities, and negative space items.
 
-Present candidates for approval.
-
-### Step 4: Auto-Skill Check
-
-Scan each category for 5+ rules with score 3.0+. If found:
-- "You have N proven rules about [topic]. Want me to generate a dedicated `/[topic]` skill?"
-- If approved, create skill, mark source rules with `(→ skill: [topic])`
-
-### Step 5: Interactive Menu
+### Step 4: Interactive Menu
 
 ```
 What would you like to do?
-1. Review all rules (by category, by score, or by context tag)
-2. Add a learning manually (starts at score 2.0)
-3. Remove or adjust a rule's score
-4. Review capability frontier + add experiments
-5. View archived rules (restore one?)
-6. Force pruning pass (merge similar, archive weak)
-7. Show meta-learning analysis
-8. Export playbook (shareable format)
-9. Done
+ 1. Review all rules (by category, score, or context)
+ 2. Add a learning manually (score 2.0)
+ 3. Remove or adjust a rule
+ 4. Review capability frontier + add experiments
+ 5. View workflows (linked rule chains)
+ 6. View uncertainty tracker
+ 7. View community playbook
+ 8. Contribute proven rules to community
+ 9. View archived rules (restore one?)
+10. Force pruning pass
+11. Meta-learning analysis
+12. Export playbook
+13. Done
 ```
 
 ## Sub-Commands
 
-- `/learn` — full review (all steps)
-- `/learn status` — step 1 only (quick glance)
-- `/learn add "<rule>"` — manually add with score 2.0
-- `/learn frontier` — show frontier, add experiments, review results
-- `/learn prune` — force archive low-scored, merge similar rules
-- `/learn meta` — meta-learning analysis: velocity, blindspots, category strength
-- `/learn history` — full stats and timeline
-- `/learn export` — clean shareable format (scores reset to 1.0)
-- `/learn signals` — show raw pending signals from all hooks
-- `/learn reset` — archive everything, fresh start (confirms first)
+- `/learn` — full review
+- `/learn status` — quick stats
+- `/learn add "<rule>"` — manually add (score 2.0)
+- `/learn frontier` — capability frontier
+- `/learn workflows` — view/manage linked rule chains
+- `/learn uncertainties` — things you don't know
+- `/learn community` — view community playbook + status
+- `/learn contribute` — **contribute proven rules to collective intelligence** (see below)
+- `/learn regress` — view regression alerts
+- `/learn prune` — force pruning + merge similar
+- `/learn meta` — meta-learning analysis (velocity, blindspots, second-order patterns)
+- `/learn export` — shareable format
+- `/learn signals` — raw hook signals
+- `/learn reset` — archive everything, fresh start
+
+## `/learn contribute` — Collective Intelligence
+
+This is how the community playbook grows. When invoked:
+
+### Step 1: Select Candidates
+Scan your personal playbook for rules meeting contribution criteria:
+- Score >= 3.0 (well-validated)
+- Sessions >= 3 (proven across multiple sessions)
+- Generalized wording (not user-specific or project-specific)
+- Has a causal explanation (WHY, not just WHAT)
+
+Present the candidates: "These N rules qualify for community contribution."
+
+### Step 2: User Selects
+The user picks which rules to contribute (or all).
+
+### Step 3: Prepare Submission
+For each selected rule:
+- Strip personal context (user names, project paths, personal tools)
+- Ensure wording is universal ("When working on X" not "In Jeremy's X project")
+- Reset score to 1.0 (must be re-validated by community)
+- Format for the community playbook
+
+### Step 4: Submit
+Create a GitHub issue on the claude-learn repo with the formatted rules:
+```bash
+gh issue create --repo OutcomeFocusAi/claude-learn \
+  --title "Community rule contribution: [N] rules" \
+  --body "[formatted rules with context and validation evidence]"
+```
+
+The maintainer reviews, deduplicates against existing community rules, and merges into `templates/playbook-community.md`. Next plugin update delivers them to all users.
+
+### Alternative: Direct PR
+For users with repo write access:
+```bash
+# Edit templates/playbook-community.md directly
+# Add rules to the "Universal Rules" section
+# Submit PR
+gh pr create --title "Add N community rules" --body "[rules + evidence]"
+```
+
+### How Community Rules Reach Users
+1. Maintainer merges contribution into `templates/playbook-community.md`
+2. New plugin version is released
+3. User runs `claude plugin update claude-learn@outcomefocusai`
+4. SessionStart hook syncs updated community playbook to `~/.claude/rules/`
+5. Community rules auto-load next session
+6. Each user's Claude validates them independently — good rules persist, bad ones decay per-user
 
 ## Pruning Pass
 
-1. Archive anything scored below 1.0
-2. Delete anything scored below 0
-3. Merge rules with >70% semantic overlap (combine scores, keep sharper wording)
-4. If over 5000 token budget, archive lowest-scored until under budget
-5. Check for auto-skill generation candidates
-6. Update meta-stats
-7. Report what was pruned/merged/promoted
-
-Archive format:
-```json
-{"rule": "...", "category": "...", "score": 0.8, "archived": "2026-03-19", "reason": "decay|merged|budget", "confirmed": 2, "sessions": 1}
-```
+1. Archive scored below 1.0, delete below 0
+2. Merge >70% semantic overlap (combine scores)
+3. Check for second-order patterns → generate meta-rules
+4. Check for sequential rules → generate workflows
+5. Check for regression patterns
+6. If over 5000 token budget, archive lowest-scored
+7. Report all changes
 
 ## Meta-Learning Analysis (`/learn meta`)
 
-When invoked, analyze:
-1. **Category distribution** — which categories have the most/fewest rules?
-2. **Score distribution** — are most rules low-scored (noisy capture) or high-scored (quality)?
-3. **Learning velocity** — rules captured per session over last 5 sessions. Increasing = growing. Flat = plateauing. Decreasing = either mastery or blind spots.
-4. **Trigger analysis** — which trigger types (correction, discovery, success, failure) produce the most durable rules?
-5. **Blindspot detection** — categories with 0 rules after 5+ sessions. Add frontier experiments targeting them.
-6. **Rule lifecycle** — average time from creation to "proven" (sessions >= 3). How long until rules validate?
-7. **Auto-skill candidates** — categories approaching the 5-rule/3.0-score threshold.
-
-Present findings and suggest actions.
-
-## Export Format
-
-When `/learn export` is invoked:
-- Output the complete plugin structure (all files) so anyone can install it
-- Include learned rules with scores reset to 1.0 (fresh start with seed knowledge)
-- Include all hook scripts unchanged
-- Include setup instructions
-- Exclude meta-stats (personal), archive (stale), and signal files (ephemeral)
+1. **Category distribution** — which categories have most/fewest rules?
+2. **Score distribution** — noisy capture (many low) or quality (few high)?
+3. **Learning velocity** — rules/session over last 5 sessions
+4. **Second-order patterns** — any 3+ rules sharing a shape?
+5. **Causal depth** — how many rules have `cause:` explanations?
+6. **Workflow coverage** — are related rules linked?
+7. **Regression alerts** — proven rules no longer being confirmed?
+8. **Uncertainty gaps** — tracked unknowns that need frontier experiments?
+9. **Session quality trend** — positive/negative signal ratio over time
+10. **Community alignment** — how many community rules are validated locally?
 
 ## Key Principles
 
-1. **Learning is always on** — this skill is the dashboard, not the engine
-2. **Three detection layers** — behavioral + language hook + outcome hook = near-complete coverage
-3. **Quality over quantity** — 10 sharp generalized rules beat 50 specific observations
-4. **Graduated trust** — rules need multi-session confirmation to be "proven"
-5. **Success = failure in value** — capture what WORKED, not just what broke
-6. **Boundary exploration is mandatory** — at least one experiment per session when safe
-7. **Generalize, don't template** — derive principles, not instance-specific instructions
-8. **Auto-evolve** — accumulated rules graduate into dedicated skills
-9. **Meta-learn** — learn about how you learn, find blindspots, track velocity
-10. **Transparency** — show confidence levels, never hide uncertainty
+1. **Learning is always on** — dashboard, not engine
+2. **Three detection layers** — behavioral + language + outcome
+3. **Second-order learning** — patterns of patterns, not just patterns
+4. **Causal > correlational** — prevent problems, don't just handle them
+5. **Collective intelligence** — your proven rules help everyone
+6. **Quality > quantity** — meta-rules replace clusters of specific rules
+7. **Track uncertainty** — knowing what you don't know prevents confident mistakes
+8. **Regression awareness** — catch declining performance before the user does
+9. **Anticipatory execution** — proactive, not reactive
+10. **Measure experiments** — count tool calls, not vibes

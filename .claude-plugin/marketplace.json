@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-improving AI tools",
-    "version": "2.0.0"
+    "version": "3.0.0"
   },
   "plugins": [
     {
@@ -16,7 +16,7 @@
         "url": "https://github.com/OutcomeFocusAi/claude-learn.git"
       },
       "description": "Self-improving Claude Code — continuous learning with scored rules, mechanical detection, boundary exploration, and auto-skill generation",
-      "version": "2.0.0",
+      "version": "3.0.0",
       "strict": true
     }
   ]
