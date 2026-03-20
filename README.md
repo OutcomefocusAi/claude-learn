@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude_Code-Plugin-blueviolet)]()
-[![Version](https://img.shields.io/badge/version-3.0.0-green)]()
+[![Version](https://img.shields.io/badge/version-3.1.0-green)]()
 
 ---
 
@@ -33,27 +33,37 @@ When your rules reach "proven" status (validated across 3+ sessions, score 3.0+)
 
 **A rule validated by many independent users across different projects is essentially a universal law of AI coding assistance.**
 
-### How It Works
+### How It Works — The Full Loop
 
 ```
 You use Claude normally
     ↓
 Rules accumulate in your personal playbook (scored, validated)
     ↓
-Rules reach "proven" status (score 3.0+, sessions >= 3)
+Rules reach "proven" status (score 3.0+, confirmed across 3+ sessions)
     ↓
-Run /learn contribute → selects your best generalized rules
+Run /learn contribute
     ↓
-Submitted as GitHub issue or PR to claude-learn repo
+Claude does TWO things:
+    ├── 1. Proposes your new proven rules for community
+    └── 2. Reports your validation scores on EXISTING community rules
+            ("read-before-edit is score 4.2 on my system, confirmed 6x")
     ↓
-Maintainer reviews, deduplicates, merges
+Submitted as GitHub issue (or PR if you have write access)
     ↓
-Plugin update delivers new community rules to ALL users
+Maintainer reviews:
+    ├── Merges new quality rules at score 1.0
+    └── Bumps existing rules when 3+ users independently validate them
     ↓
-Each user's Claude validates independently
+Plugin update delivers changes to ALL users
     ↓
-Rules that work for many people = universal truth
+Community rule scores reflect real validation:
+    1 contributor  → score 1.0 (unproven, must earn trust on your system)
+    3+ validators  → score 2.0 (independently confirmed by multiple users)
+    5+ validators  → score 3.0 (widely proven — high confidence)
 ```
+
+**The key insight:** Every time someone runs `/learn contribute`, they're not just proposing new rules — they're **validating existing ones.** This is what makes community scores go UP. More users validating = higher scores = more trust for new installs.
 
 ### How to Contribute
 
@@ -62,23 +72,25 @@ Rules that work for many people = universal truth
 /learn contribute
 
 # Claude will:
-# 1. Show your proven rules (score 3.0+, 3+ sessions)
-# 2. Filter out anything too specific to your setup
-# 3. Generalize the wording for universal use
-# 4. Create a GitHub issue on this repo with formatted rules
+# 1. Show your proven rules (score 3.0+, 3+ sessions) → proposes new ones
+# 2. Check your scores on existing community rules → reports validations
+# 3. Strip personal details, generalize wording
+# 4. Create a GitHub issue with new rules + validation report
 
 # For repo contributors with write access:
 # Edit templates/playbook-community.md directly and submit a PR
 ```
+
+**You cannot modify the core plugin code.** Only the maintainer can merge changes. Contributors can only submit issues/PRs which require approval. Your contributions add value — they never risk breaking anything.
 
 ### Two Playbooks, One System
 
 | Playbook | File | Source | Priority |
 |----------|------|--------|----------|
 | **Personal** | `~/.claude/rules/playbook.md` | Your sessions | **Highest** — always wins conflicts |
-| **Community** | `~/.claude/rules/playbook-community.md` | All contributors | Baseline — must prove itself to you |
+| **Community** | `~/.claude/rules/playbook-community.md` | All contributors | Starting point — must prove itself to YOU |
 
-Both auto-load every session. Personal rules take priority. Community rules start at score 1.0 on your system and must earn their way up through your usage.
+Both auto-load every session. Personal rules always take priority. Community rules start at their community-validated score (1.0 to 3.0 based on how many users confirmed them), but can still decay on YOUR system if they don't fit your workflow.
 
 ---
 
