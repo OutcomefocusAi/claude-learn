@@ -102,22 +102,38 @@ Present the candidates: "These N rules qualify for community contribution."
 ### Step 2: User Selects
 The user picks which rules to contribute (or all).
 
-### Step 3: Prepare Submission
-For each selected rule:
+### Step 3: Validate Existing Community Rules
+Read `~/.claude/rules/playbook-community.md` and check each community rule against your personal playbook:
+- If you have a similar personal rule at score 3.0+ → report as "validated"
+- If the community rule decayed on your system → report as "not validated"
+- If you haven't encountered it → report as "no data"
+
+This validation report is how community scores increase. When 3+ users independently validate a rule, the maintainer bumps its template score from 1.0 to 2.0. At 5+ validators → 3.0.
+
+### Step 4: Prepare Submission
+For each new rule:
 - Strip personal context (user names, project paths, personal tools)
 - Ensure wording is universal ("When working on X" not "In Jeremy's X project")
-- Reset score to 1.0 (must be re-validated by community)
+- Set score to 1.0 (must be validated by community)
 - Format for the community playbook
 
-### Step 4: Submit
-Create a GitHub issue on the claude-learn repo with the formatted rules:
+For validation reports on existing rules:
+- Include rule name, your local score, confirmed count, session count
+- This is the evidence that drives community score increases
+
+### Step 5: Submit
+Create a GitHub issue on the claude-learn repo:
 ```bash
 gh issue create --repo OutcomeFocusAi/claude-learn \
-  --title "Community rule contribution: [N] rules" \
-  --body "[formatted rules with context and validation evidence]"
+  --title "Community contribution: [N] new rules + [M] validations" \
+  --body "[formatted new rules + validation report on existing rules]"
 ```
 
-The maintainer reviews, deduplicates against existing community rules, and merges into `templates/playbook-community.md`. Next plugin update delivers them to all users.
+The issue includes TWO sections:
+1. **New rules** — proposed additions to the community playbook
+2. **Validation report** — your scores on existing community rules
+
+The maintainer reviews, deduplicates new rules, aggregates validation counts, bumps community scores where warranted, and merges. Next plugin update delivers changes to all users.
 
 ### Alternative: Direct PR
 For users with repo write access:
