@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/learning-signal-hook.py\"",
+            "command": "py \"${CLAUDE_PLUGIN_ROOT}/hooks/learning-signal-hook.py\"",
             "timeout": 3
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/outcome-tracker-hook.py\"",
+            "command": "py \"${CLAUDE_PLUGIN_ROOT}/hooks/outcome-tracker-hook.py\"",
             "timeout": 3
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/playbook-init-hook.py\"",
+            "command": "py \"${CLAUDE_PLUGIN_ROOT}/hooks/playbook-init-hook.py\"",
             "timeout": 3
           }
         ]
