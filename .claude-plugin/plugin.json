@@ -1,6 +1,6 @@
 {
   "name": "claude-learn",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Self-improving Claude Code — continuous learning with scored rules, mechanical detection, boundary exploration, and auto-skill generation",
   "author": {
     "name": "OutcomeFocus AI",

@@ -23,7 +23,7 @@ RETRY_FILE = Path.home() / ".claude" / ".learning-retries.json"
 DECAY_MARKER = Path.home() / ".claude" / ".playbook-last-decay"
 
 PLAYBOOK_TEMPLATE = r'''# Self-Improvement Playbook
-<!-- Token budget: 5000 | Last consolidated: {date} | Entries: 0 | Version: 3.0 -->
+<!-- Token budget: 5000 | Last consolidated: {date} | Entries: 0 | Version: 4.0 -->
 
 ## Active Learning Protocol
 
@@ -131,7 +131,61 @@ Detects actual outcomes from tool use: test pass/fail, build success/failure, de
 
 ---
 
-### 6. Boundary Exploration — Push Limits Actively
+### 6. Rule Verification — Check Your Own Compliance
+
+After completing a task or recovering from an error, scan this playbook for rules that SHOULD have applied:
+- Did an Anti-Pattern rule describe exactly what you just did wrong?
+- Did a Workflow Optimization exist that you didn't follow?
+- Did a Tool Mastery recipe cover this exact situation?
+
+If yes: that's a **rule violation**. Increment the violated rule's score by +1.0 and add context about WHY you missed it. The goal isn't punishment — it's recognizing trigger patterns so you catch them earlier next time.
+
+---
+
+### 7. Selective Attention — Context-Aware Rule Priority
+
+Not all rules are relevant every session. At the start of each task:
+1. Note the context (language, framework, task type)
+2. Rules with matching `ctx:` tags are HIGH PRIORITY — apply these actively
+3. Rules without `ctx:` tags are UNIVERSAL — always apply
+4. Rules with non-matching `ctx:` tags are LOW PRIORITY — ignore unless the situation clearly fits
+5. The decay hook already handles this: rules irrelevant to the current project don't decay
+
+This prevents a Remotion rule from cluttering your attention during a Python debugging session.
+
+---
+
+### 8. Structured Experiments — A/B Testing Approaches
+
+When the Capability Frontier suggests an experiment, run it with structure:
+
+```
+EXPERIMENT: [hypothesis]
+APPROACH A (default): [what you'd normally do]
+APPROACH B (experiment): [the new thing]
+METRIC: [tool calls | time | retries | user corrections]
+RESULT A: [measured outcome]
+RESULT B: [measured outcome]
+WINNER: [A or B] because [reason]
+LEARNING: [captured to playbook? yes/no]
+```
+
+Log experiments to the Tested Results section with this format. Anecdotal "it felt faster" is not data. Count tool calls, count retries, note corrections needed.
+
+---
+
+### 9. Memory System Integration
+
+If claude-mem or other session memory tools are available:
+- At session start, check recent observations for patterns that might be playbook rules
+- If claude-mem shows the same type of error across 2+ sessions, that's a rule candidate
+- If claude-mem shows a technique that worked multiple times, that's a success pattern
+- Don't duplicate what's in memory — derive the BEHAVIORAL RULE from the observation
+- Memory is "what happened." The playbook is "what to do about it."
+
+---
+
+### 10. Boundary Exploration — Push Limits Actively
 
 **You are expected to explore.** Every session should include at least ONE attempt to do something you haven't done before — if a safe opportunity exists.
 
@@ -155,7 +209,7 @@ Detects actual outcomes from tool use: test pass/fail, build success/failure, de
 
 ---
 
-### 7. Auto-Skill Generation
+### 11. Auto-Skill Generation
 
 When **5+ rules in a single category** all reach **score 3.0+**, you have enough validated knowledge to generate a dedicated skill. At that point:
 1. Draft a new skill file from the clustered rules
@@ -167,7 +221,7 @@ This turns accumulated wisdom into new capabilities. The playbook is the nursery
 
 ---
 
-### 8. Meta-Learning
+### 12. Meta-Learning
 
 Track your own learning effectiveness:
 - Which categories produce the most high-scoring rules?
@@ -253,8 +307,54 @@ def create_playbook():
     PLAYBOOK_FILE.write_text(content, encoding="utf-8")
 
 
+def detect_session_context() -> set:
+    """Detect context tags for current session based on cwd and environment."""
+    tags = set()
+    try:
+        raw = sys.stdin.buffer.peek(4096) if hasattr(sys.stdin, 'buffer') else b""
+    except Exception:
+        raw = b""
+
+    cwd = os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
+    cwd_lower = cwd.lower().replace("\\", "/")
+
+    # Detect from common project indicators
+    checks = {
+        "react": ["package.json", "src/App.tsx", "src/App.jsx", "next.config"],
+        "python": ["pyproject.toml", "setup.py", "requirements.txt", "Pipfile"],
+        "rust": ["Cargo.toml"],
+        "go": ["go.mod"],
+        "remotion": ["remotion.config", "src/Root.tsx"],
+        "docker": ["Dockerfile", "docker-compose.yml", "docker-compose.yaml"],
+        "terraform": ["main.tf", "terraform.tfvars"],
+    }
+
+    for tag, files in checks.items():
+        for f in files:
+            if os.path.exists(os.path.join(cwd, f)):
+                tags.add(tag)
+                break
+
+    # Detect from directory name patterns
+    name_hints = {
+        "frontend": ["frontend", "web", "ui", "dashboard", "app"],
+        "backend": ["backend", "api", "server", "service"],
+        "infra": ["infra", "deploy", "terraform", "kubernetes", "k8s"],
+        "video": ["remotion", "video", "media"],
+    }
+
+    dir_name = os.path.basename(cwd).lower()
+    for tag, hints in name_hints.items():
+        if any(h in dir_name for h in hints):
+            tags.add(tag)
+
+    return tags
+
+
 def apply_decay():
-    """Apply session decay to all scores. Proven rules (sessions >= 3) decay slower."""
+    """Apply context-aware session decay. Rules matching current context decay normally.
+    Rules NOT matching current context don't decay (they're irrelevant this session).
+    Proven rules (sessions >= 3) always decay slower."""
     if DECAY_MARKER.exists():
         try:
             last = float(DECAY_MARKER.read_text().strip())
@@ -268,7 +368,10 @@ def apply_decay():
 
     content = PLAYBOOK_FILE.read_text(encoding="utf-8")
 
-    # Find all score entries: **[3.5] rule-name**: ... (confirmed: N | sessions: M ...)
+    # Detect current session context
+    session_ctx = detect_session_context()
+
+    # Find all score entries: **[3.5] rule-name**: ... (confirmed: N | sessions: M | ctx: ...)
     pattern = r'\*\*\[(\d+\.?\d*)\]\s+'
     matches = list(re.finditer(pattern, content))
 
@@ -282,15 +385,22 @@ def apply_decay():
     for match in reversed(matches):
         old_score = float(match.group(1))
 
-        # Check if rule is "proven" (sessions >= 3) for slower decay
-        # Look for sessions: N in the same line
         line_end = content.find("\n", match.end())
         if line_end == -1:
             line_end = len(content)
         line_text = content[match.start():line_end]
 
+        # Check if rule is "proven" (sessions >= 3) for slower decay
         sessions_match = re.search(r'sessions:\s*(\d+)', line_text)
         sessions = int(sessions_match.group(1)) if sessions_match else 0
+
+        # Check context tags — only decay if rule is relevant to this session
+        ctx_match = re.search(r'ctx:\s*([^)]+)\)', line_text)
+        if ctx_match:
+            rule_tags = {t.strip() for t in ctx_match.group(1).split(",")}
+            # If rule has ctx tags but NONE match current session, skip decay
+            if rule_tags and session_ctx and not rule_tags.intersection(session_ctx):
+                continue  # Don't decay — this rule isn't relevant right now
 
         decay = 0.05 if sessions >= 3 else 0.1
         new_score = round(old_score - decay, 2)
