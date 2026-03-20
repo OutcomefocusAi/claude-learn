@@ -1,0 +1,23 @@
+{
+  "name": "outcomefocusai",
+  "owner": {
+    "name": "OutcomeFocus AI",
+    "email": "jeremy@outcomefocus.ai"
+  },
+  "metadata": {
+    "description": "Self-improving AI tools",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "claude-learn",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/OutcomeFocusAi/claude-learn.git"
+      },
+      "description": "Self-improving Claude Code — continuous learning with scored rules, mechanical detection, boundary exploration, and auto-skill generation",
+      "version": "1.0.0",
+      "strict": true
+    }
+  ]
+}
