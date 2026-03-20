@@ -221,6 +221,10 @@ First session creates both playbooks automatically. Learning begins immediately.
 
 ---
 
+## Pair With Session Coherence
+
+Claude Learn teaches your AI **how to work better**. [Session Coherence](https://github.com/OutcomeFocusAi/session-coherence) gives your AI **cross-tool session memory** — one chronicle shared by 9 tools (Claude Code, Cursor, Codex, Gemini, Aider, and more). Together, they give every session memory AND learning. Zero infrastructure for both.
+
 ## Keywords
 
 Claude Code plugin, self-improving AI, adaptive AI agent, collective intelligence, community learning, scored behavioral rules, machine learning feedback loop, Claude Code skills, continuous learning, AI self-improvement, meta-learning, regression detection, causal learning, workflow generation, anticipatory execution, Claude Code hooks, AI optimization, self-improving LLM, Claude Code automation
