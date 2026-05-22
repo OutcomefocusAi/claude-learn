@@ -183,63 +183,275 @@ For non-CLI interfaces, the MCP server replicates the same sync loop via protoco
 
 ## Installation
 
-### Claude Code CLI
+### Which path is right for you?
+
+| You use... | Use this path |
+|------------|---------------|
+| Claude Code CLI (terminal / VS Code / JetBrains extension) | [Option A](#option-a-claude-code-cli) |
+| Claude Desktop (the downloadable desktop app) | [Option B](#option-b-claude-desktop) |
+| Claude Web (claude.ai in a browser) | [Option C](#option-c-claude-web) |
+
+Mixed teams (some on CLI, some on Desktop) work fine — both paths read and write the same playbook file and push to the same team repo.
+
+---
+
+### Option A: Claude Code CLI
+
+**Prerequisites:** Claude Code CLI installed and working. That's it — no Python, no Git configuration, no extra steps.
+
+> Download Claude Code: https://claude.ai/code
 
 ```bash
-# Add marketplace
+# Step 1: Register the plugin source
 claude plugin marketplace add OutcomeFocusAi/claude-learn
 
-# Install
+# Step 2: Install
 claude plugin install claude-learn@outcomefocusai
 ```
 
-First session creates both playbooks automatically. Learning begins immediately.
+Your first session automatically creates `~/.claude/rules/playbook.md` and `~/.claude/rules/playbook-community.md`. Learning begins immediately and runs silently in the background.
 
-### Claude Desktop / Enterprise (MCP)
-
-**1. Install the MCP server**
-
+**To enable team sync**, see [Team Repo Setup](#team-repo-setup) below, then add one line:
 ```bash
-# Clone the repo (or just copy mcp-server/)
-git clone https://github.com/OutcomeFocusAi/claude-learn.git
-cd claude-learn/mcp-server
-pip install -r requirements.txt
+# Windows (PowerShell)
+'{"team_repo": "https://github.com/YOUR_ORG/YOUR_REPO.git"}' | Out-File -Encoding utf8 "$env:USERPROFILE\.claude\.claude-learn-config.json"
+
+# Mac / Linux
+echo '{"team_repo": "https://github.com/YOUR_ORG/YOUR_REPO.git"}' > ~/.claude/.claude-learn-config.json
 ```
 
-**2. Add to Claude Desktop config**
+---
 
-Edit `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/Application Support/Claude/claude_desktop_config.json` (Mac):
+### Option B: Claude Desktop
 
+> **There is no server URL or address to configure.** The MCP server is a local Python process that runs on each user's machine. Claude Desktop starts and manages it automatically. You never type a URL, open a port, or configure a remote server. Each team member installs their own copy.
+
+#### Prerequisites
+
+Run each check before proceeding:
+
+```bash
+# Python 3.10 or later — required
+python3 --version    # Mac / Linux
+py --version         # Windows
+# Must show 3.10.x or higher
+# Not installed? Download from https://python.org/downloads
+# Windows tip: check "Add Python to PATH" during install
+
+# Git — required only if using team sync, skip if solo
+git --version
+# Not installed? Download from https://git-scm.com/downloads
+
+# Claude Desktop — must be installed and up to date
+# Download from https://claude.ai/download
+```
+
+#### Step 1 — Get the server file
+
+**Option 1: Clone the full repo (recommended — includes templates)**
+```bash
+git clone https://github.com/OutcomeFocusAi/claude-learn.git
+```
+
+**Option 2: Download only what you need**
+```bash
+# Mac / Linux
+mkdir -p claude-learn/mcp-server claude-learn/templates
+curl -L -o claude-learn/mcp-server/server.py \
+  https://raw.githubusercontent.com/OutcomeFocusAi/claude-learn/master/mcp-server/server.py
+curl -L -o claude-learn/templates/playbook.md \
+  https://raw.githubusercontent.com/OutcomeFocusAi/claude-learn/master/templates/playbook.md
+curl -L -o claude-learn/templates/project-system-prompt.md \
+  https://raw.githubusercontent.com/OutcomeFocusAi/claude-learn/master/templates/project-system-prompt.md
+```
+
+Note the **full absolute path** to `server.py` — you will need it in Step 3:
+```bash
+# Mac / Linux
+realpath claude-learn/mcp-server/server.py
+# example output: /Users/jsmith/claude-learn/mcp-server/server.py
+
+# Windows (PowerShell)
+(Get-Item "claude-learn\mcp-server\server.py").FullName
+# example output: C:\Users\jsmith\claude-learn\mcp-server\server.py
+```
+
+#### Step 2 — Install the Python dependency
+
+```bash
+# Mac / Linux
+pip3 install "fastmcp>=3.0.0"
+
+# Windows
+py -m pip install "fastmcp>=3.0.0"
+```
+
+Verify it installed correctly:
+```bash
+python3 -c "import fastmcp; print('fastmcp', fastmcp.__version__, '— OK')"  # Mac / Linux
+py -c "import fastmcp; print('fastmcp', fastmcp.__version__, '— OK')"       # Windows
+# Should print: fastmcp 3.x.x — OK
+```
+
+If you see `ModuleNotFoundError`, Python found a different interpreter than pip installed into. Try:
+```bash
+python3 -m pip install "fastmcp>=3.0.0"   # Mac / Linux
+py -m pip install "fastmcp>=3.0.0"        # Windows
+```
+
+#### Step 3 — Configure Claude Desktop
+
+Find the Claude Desktop config file for your OS:
+
+| OS | Full path |
+|----|-----------|
+| **Windows** | `C:\Users\YOUR_USERNAME\AppData\Roaming\Claude\claude_desktop_config.json` |
+| **Mac** | `/Users/YOUR_USERNAME/Library/Application Support/Claude/claude_desktop_config.json` |
+| **Linux** | `/home/YOUR_USERNAME/.config/Claude/claude_desktop_config.json` |
+
+The file may not exist yet — create it if needed. Open it in any text editor and add:
+
+**Windows** — use `py` as the command and double-backslashes in the path:
 ```json
 {
   "mcpServers": {
     "claude-learn": {
-      "command": "python",
-      "args": ["/absolute/path/to/claude-learn/mcp-server/server.py"]
+      "command": "py",
+      "args": ["C:\\Users\\YOUR_USERNAME\\claude-learn\\mcp-server\\server.py"]
     }
   }
 }
 ```
 
-Use `py` instead of `python` on Windows.
+**Mac / Linux** — use `python3` as the command:
+```json
+{
+  "mcpServers": {
+    "claude-learn": {
+      "command": "python3",
+      "args": ["/Users/YOUR_USERNAME/claude-learn/mcp-server/server.py"]
+    }
+  }
+}
+```
 
-**3. Create a Project in Claude Desktop**
+> **Use the exact absolute path from Step 1.** Do not use `~`, relative paths, or environment variables — Claude Desktop does not expand them.
+>
+> If Claude Desktop already has other MCP servers, add `"claude-learn": { ... }` inside the existing `"mcpServers"` block alongside them — do not replace the whole file.
 
-- Open Claude Desktop → New Project
-- Paste the contents of [`templates/project-system-prompt.md`](templates/project-system-prompt.md) as the project instructions
-- In the project context panel, add the `playbook://current` resource
+#### Step 4 — Create a Project in Claude Desktop
 
-**4. Configure team sync (optional but recommended)**
+1. Open Claude Desktop
+2. Click **Projects** in the left sidebar → **New Project**
+3. Open [`templates/project-system-prompt.md`](templates/project-system-prompt.md) from this repo
+4. Copy the full contents and paste into the project's **Custom Instructions** field
+5. In the project context panel (right side), click **Add context** → select the **`playbook://current`** resource listed under `claude-learn`
+6. Save the project
+
+Every conversation you start inside this project will automatically load your playbook and follow the learning protocol.
+
+#### Step 5 — Verify it works
+
+1. **Quit Claude Desktop completely** and reopen it (required for config changes to take effect)
+2. Open a conversation in the project you just created
+3. Type: `call get_playbook and show me the first 10 lines`
+4. Claude should respond with the playbook content
+
+**If Claude says the tool isn't available:**
+- Confirm the path in the config file matches exactly what `realpath` / `Get-Item` returned in Step 1
+- Confirm `fastmcp` is installed for the same Python that `py` or `python3` points to
+- Fully quit and reopen Claude Desktop (not just close the window)
+- Check `~/.claude/.claude-learn-team.log` for error messages from the server
+
+**To enable team sync**, see [Team Repo Setup](#team-repo-setup) below.
+
+---
+
+### Option C: Claude Web
+
+**Current limitation:** The MCP server in this repo uses stdio transport — it runs as a local process started by Claude Desktop. The browser-based claude.ai interface requires MCP servers to be hosted at a publicly accessible HTTPS URL. The local server does not work directly with the web interface.
+
+**Your options for Web users:**
+
+**1. Switch to Claude Desktop (recommended)** — full automation, no hosting required, same team repo works for everyone.
+
+**2. Host the MCP server** (advanced — requires a server/VM your team can reach):
+```python
+# Change the last line of mcp-server/server.py from:
+mcp.run()
+# to:
+mcp.run(transport="sse", host="0.0.0.0", port=8000)
+```
+Your MCP server address would then be `https://your-server.com/sse`. Add authentication before exposing this — the server has access to your git credentials and playbook.
+
+**3. Manual playbook for Web-only teams** — no automation, but you get the protocol:
+- Create a Project at claude.ai
+- Paste the contents of [`templates/project-system-prompt.md`](templates/project-system-prompt.md) as Custom Instructions
+- Paste the contents of [`templates/playbook.md`](templates/playbook.md) after the system prompt
+- Update the playbook content manually when rules accumulate
+
+---
+
+## Team Repo Setup
+
+This section applies to all installation options. Configure once per team; each member then points to the same repo.
+
+### What the repo needs
+
+A git repository with exactly one file: **`playbook.md`**. This is the shared team playbook. All team members read and write this single file automatically — there is nothing else to manage.
+
+**The repo must be reachable by `git clone` from each team member's machine.** Test this before configuring (see [Git Authentication](#git-authentication) below).
+
+### Create the team repo
+
+**Step 1:** Create a new empty repository on GitHub, GitLab, Bitbucket, or your internal git server. Name it anything (e.g. `team-playbook`). Private is fine and recommended.
+
+**Step 2:** Seed it with the starter playbook:
+```bash
+git clone https://github.com/YOUR_ORG/YOUR_REPO.git
+cd YOUR_REPO
+
+# Copy the starter template from this repo
+cp /path/to/claude-learn/templates/playbook.md ./playbook.md
+# (or download it directly from GitHub)
+
+git add playbook.md
+git commit -m "init: team playbook"
+git push
+```
+
+**Step 3:** Share the repo URL with your team. Each member adds it to their config:
 
 ```bash
-# Create config file
-echo '{"team_repo": "https://github.com/YOUR_ORG/team-playbook.git"}' \
+# Windows (PowerShell) — creates the config file
+$config = '{"team_repo": "https://github.com/YOUR_ORG/YOUR_REPO.git"}'
+$config | Out-File -Encoding utf8 "$env:USERPROFILE\.claude\.claude-learn-config.json"
+
+# Mac / Linux
+echo '{"team_repo": "https://github.com/YOUR_ORG/YOUR_REPO.git"}' \
   > ~/.claude/.claude-learn-config.json
 ```
 
-The team repo should contain a `playbook.md` file. On first connect the server clones it; every session thereafter pulls on start and pushes on end.
+On first session, the client clones the repo automatically. Every session after: pulls on start, pushes on end. Rules scored higher on one machine win over lower-scored versions on others — no human arbitration needed.
 
-**Solo users:** skip step 4. The MCP server still serves the local playbook and all tools work — git sync is simply skipped.
+### Git authentication
+
+The server and CLI hooks call `git clone` / `git push` using your machine's existing git credentials. **Test this first** — if your terminal can push to the repo, the plugin can too:
+
+```bash
+git clone YOUR_TEAM_REPO_URL /tmp/test-clone && echo "auth OK" && rm -rf /tmp/test-clone
+```
+
+**If this fails, fix credentials before configuring the plugin:**
+
+| Repo type | Fix |
+|-----------|-----|
+| **GitHub HTTPS** | Create a Personal Access Token at github.com/settings/tokens (needs `repo` scope). Use `https://TOKEN@github.com/ORG/REPO.git` as the `team_repo` URL, or run `git config --global credential.helper store` and clone once to cache |
+| **GitHub SSH** | Generate an SSH key, add public key to GitHub → Settings → SSH Keys, use `git@github.com:ORG/REPO.git` as the URL. Verify with `ssh -T git@github.com` |
+| **GitLab / Bitbucket** | Same pattern — HTTPS token or SSH key for your platform |
+| **Self-hosted git** | Ensure the host is reachable from each machine. Use SSH or an internal HTTPS token |
+
+> **Enterprise / VPN note:** If the team repo is behind a VPN or firewall, `git push` will fail silently when the user is off-network. The local playbook still works — rules are preserved locally and will sync the next time the user has access. No data is lost.
 
 ---
 
@@ -247,61 +459,115 @@ The team repo should contain a `playbook.md` file. On first connect the server c
 
 ### Claude Code CLI
 
-**Invisible by default.** Claude learns silently. Use `/learn` when you want to see what's happening.
+**Invisible by default.** Claude learns silently in the background. Use `/learn` when you want to inspect or control what's happening.
 
 ```
 /learn              Full review + interactive menu
-/learn status       Quick stats
-/learn add "X"      Manual rule (score 2.0)
-/learn contribute   Share proven rules with community
+/learn status       Quick stats: rule count, pending signals, archived
+/learn add "X"      Manually add a rule at score 2.0
+/learn contribute   Share proven rules with the community playbook
 /learn community    View community playbook
-/learn frontier     Capability experiments
+/learn frontier     Capability experiments log
 /learn workflows    Linked rule chains
-/learn regress      Regression alerts
-/learn meta         Learning velocity + analysis
-/learn export       Shareable format
+/learn regress      Regression alerts (rules that stopped being confirmed)
+/learn meta         Learning velocity + category analysis
+/learn export       Shareable format for rules
 ```
 
-### Claude Desktop / Web (MCP tools)
+### Claude Desktop (MCP tools)
 
-Claude calls these tools directly as part of its behavioral protocol. You can also invoke them by asking:
+Claude calls tools automatically as part of the learning protocol. You can also trigger them directly:
 
-| Ask Claude | What happens |
-|------------|-------------|
-| "What rules are you following?" | Calls `get_playbook()` |
-| "Add a rule about X" | Calls `add_rule()` |
-| "Sync your learnings" | Calls `sync_now()` |
+| Say to Claude | What happens |
+|---------------|--------------|
+| "What rules are you following?" | Calls `get_playbook()`, shows current rules |
+| "Add a rule: always X before Y" | Calls `add_rule()` |
+| "Update the score on rule X" | Calls `update_rule()` |
+| "Sync your learnings to the team" | Calls `sync_now()`, pushes immediately |
+
+---
 
 ## Files
 
 | File | Purpose | CLI | Desktop |
 |------|---------|-----|---------|
-| `~/.claude/rules/playbook.md` | Scored rules (shared by both transports) | Auto-loaded | Via `get_playbook()` |
-| `~/.claude/rules/playbook-community.md` | Community rules | Auto-loaded | — |
-| `~/.claude/.claude-learn-config.json` | Team repo config | Read by hooks | Read by MCP server |
-| `~/.claude/.claude-learn-team/` | Local clone of team repo | CLI hooks | MCP server |
-| `~/.claude/.claude-learn-team.log` | Team sync log | Both | Both |
-| `~/.claude/playbook-archive.jsonl` | Decayed rules | No | No |
-| `~/.claude/.learning-signals.jsonl` | Hook signals | No | — |
+| `~/.claude/rules/playbook.md` | Team playbook — rules + protocol (shared by both transports) | Auto-loaded as rules file | Served via `playbook://current` resource |
+| `~/.claude/rules/playbook-community.md` | Community seed rules | Auto-loaded | — |
+| `~/.claude/.claude-learn-config.json` | Team repo URL | Read by hooks | Read by MCP server |
+| `~/.claude/.claude-learn-team/` | Local git clone of team repo | CLI hooks | MCP server |
+| `~/.claude/.claude-learn-team.log` | Team sync log (check here if sync fails) | Both | Both |
+| `~/.claude/playbook-archive.jsonl` | Rules archived by decay | No | No |
+| `~/.claude/.learning-signals.jsonl` | Raw hook signal log | No | — |
 | `~/.claude/.playbook-regression.json` | Regression tracker | No | — |
-| `mcp-server/server.py` | MCP server for Desktop/Web | — | Entry point |
-| `templates/project-system-prompt.md` | Project instructions template | — | Paste into Project |
+| `mcp-server/server.py` | MCP server entry point for Desktop | — | Local process |
+| `templates/playbook.md` | Starter playbook (auto-used on first run) | CLI + Desktop | Desktop |
+| `templates/project-system-prompt.md` | Paste into Claude Desktop Project instructions | — | Required |
+| `templates/playbook-community.md` | Community rules template | CLI | — |
+
+**File paths by OS:**
+
+| Path shown | Windows | Mac / Linux |
+|------------|---------|-------------|
+| `~/.claude/` | `C:\Users\USERNAME\.claude\` | `~/.claude/` |
+| Claude Desktop config | `C:\Users\USERNAME\AppData\Roaming\Claude\claude_desktop_config.json` | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+
+---
+
+## Troubleshooting
+
+**"Tool not available" or MCP tools don't appear in Claude Desktop**
+- Fully quit and reopen Claude Desktop after editing `claude_desktop_config.json`
+- Confirm the path to `server.py` is absolute (no `~`, no relative paths)
+- Run the path directly to check for errors: `py "C:\...\server.py"` or `python3 "/Users/.../server.py"` — it should start and wait for input
+- Confirm `fastmcp` is installed: `py -c "import fastmcp"` should not error
+
+**"No playbook found" from `get_playbook()`**
+- The server auto-creates the playbook from the bundled template on first startup
+- If you used Option 2 (download only), confirm `templates/playbook.md` exists at the same level as `mcp-server/`
+- Check that `~/.claude/rules/` directory exists and is writable
+
+**Git push / pull fails silently**
+- Check `~/.claude/.claude-learn-team.log` for the error message
+- Test git auth manually: `git clone YOUR_REPO_URL /tmp/test` — fix whatever blocks this
+- On VPN-required repos: connect to VPN first, then start Claude Desktop
+
+**Playbook at 38k cap warning**
+- `add_rule()` returns a cap warning when the playbook would exceed 38,000 characters
+- Ask Claude to prune low-scoring rules (score < 2.0) or archive ones not relevant to current work
+- CLI users: `/learn` → review and archive low-value rules
+
+**Team members getting different rules**
+- This is expected early on — each machine's rules diverge until they sync
+- Score-wins merge means the highest-scored version of each rule propagates to everyone over time
+- Rules only exist on one machine don't appear for others until the next push/pull cycle
+
+---
 
 ## FAQ
 
-**Will this slow me down?** No. CLI hooks < 200ms. MCP server adds ~1s on startup for git pull, then stays resident.
+**Do I need to configure a server address or URL?**
+For Claude Desktop: no. The MCP server is a local process on each user's machine — there is no network address, no port to open, no firewall rule needed. For Claude Web: yes, you would need a hosted URL (see [Option C](#option-c-claude-web)).
 
-**What if I close the tab?** Learnings write immediately to disk. No batching. The MCP server also pushes on disconnect.
+**Will this slow me down?**
+No. CLI hooks run in under 200ms. The MCP server adds ~1s on Claude Desktop startup for the git pull, then stays resident and adds no latency to conversations.
 
-**Cross-project?** Yes. Context tags filter relevance. Context-aware decay handles the rest.
+**What if I close the tab or quit Claude Desktop?**
+Learnings write to disk immediately — no batching, nothing is lost. The MCP server also pushes to the team repo on disconnect as a final flush.
 
-**vs CLAUDE.md?** CLAUDE.md is static instructions you write. The playbook is dynamic rules Claude writes, scores, and prunes based on evidence. Use both.
+**Can CLI and Desktop users share the same team repo?**
+Yes. Both transports read/write `~/.claude/rules/playbook.md` and sync to the same git repo. A rule learned in a CLI session is available to a Desktop user on their next connect, and vice versa.
 
-**How do I contribute rules?** CLI: run `/learn contribute`. Desktop: ask Claude "contribute my proven rules" — it will draft a GitHub issue using the community format.
+**Does it work without a team repo?**
+Yes. Solo users (no `team_repo` in config) get the full local experience — the playbook loads, tools work, rules persist. Git sync is simply skipped. You can add the team repo config later without reinstalling anything.
 
-**CLI and Desktop on the same team?** Yes. Both read/write `~/.claude/rules/playbook.md` and push to the same team git repo. A rule learned in a CLI session is available to a Desktop user on their next connect, and vice versa.
+**vs CLAUDE.md?**
+CLAUDE.md is static instructions you write once. The playbook is dynamic — Claude writes and scores rules based on evidence, and prunes ones that stop being useful. Use both: CLAUDE.md for project-specific context, the playbook for universal behavioral patterns.
 
-**Does the MCP server work without a team repo?** Yes. Solo users get the full playbook experience — rules load, tools work, everything syncs locally. Just skip the `team_repo` config.
+**How do I contribute rules to the community?**
+CLI: run `/learn contribute`. Desktop: ask Claude "draft a contribution of my proven rules" — it formats your highest-scored rules as a GitHub issue against this repo.
+
+**What's the 38k character limit?**
+The playbook is loaded into context on every session. At ~40k characters users reported hook timeout errors. The 38k cap leaves a buffer. If you hit it, prune rules with scores below 2.0 — they haven't proven their value yet.
 
 ---
 

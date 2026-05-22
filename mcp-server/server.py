@@ -18,6 +18,7 @@ Solo users (no team_repo): resource and tools still work, git sync is skipped.
 
 import json
 import re
+import shutil
 import socket
 import subprocess
 import threading
@@ -104,6 +105,21 @@ def merge_playbooks(local_content: str, remote_content: str) -> str:
 
 
 # ── Git sync ──────────────────────────────────────────────────────────────────
+
+def ensure_playbook_exists() -> None:
+    """Create playbook from bundled template if it doesn't exist.
+
+    Desktop users who never ran the CLI won't have ~/.claude/rules/playbook.md.
+    Copy the template so get_playbook() and the resource return real content.
+    """
+    if PLAYBOOK_FILE.exists():
+        return
+    PLAYBOOK_FILE.parent.mkdir(parents=True, exist_ok=True)
+    template = Path(__file__).parent.parent / "templates" / "playbook.md"
+    if template.exists():
+        shutil.copy2(template, PLAYBOOK_FILE)
+        log_team("initialized playbook from template")
+
 
 def git_pull() -> None:
     """Pull (or clone) team repo and merge into local playbook. Silent on failure."""
@@ -237,9 +253,10 @@ def flush_push() -> None:
 
 @asynccontextmanager
 async def lifespan(server: FastMCP):
-    git_pull()      # sync on connect
+    ensure_playbook_exists()   # create from template if first-time Desktop user
+    git_pull()                 # sync latest from team repo
     yield
-    flush_push()    # push on disconnect
+    flush_push()               # push any pending changes on disconnect
 
 
 mcp = FastMCP(
