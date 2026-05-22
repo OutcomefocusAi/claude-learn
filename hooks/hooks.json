@@ -28,7 +28,18 @@
           {
             "type": "command",
             "command": "py \"${CLAUDE_PLUGIN_ROOT}/hooks/playbook-init-hook.py\"",
-            "timeout": 3
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"${CLAUDE_PLUGIN_ROOT}/hooks/team-stop-hook.py\"",
+            "timeout": 20
           }
         ]
       }
