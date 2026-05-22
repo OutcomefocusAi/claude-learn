@@ -1,10 +1,11 @@
 # claude-learn
 
-> **The self-improving plugin for Claude Code.** Claude gets measurably better every session — automatically. Your proven learnings help every user. Every user's learnings help you.
+> **The self-improving plugin for Claude.** Claude gets measurably better every session — automatically. Works across Claude Code CLI, Claude Desktop, and Claude Web. Your proven learnings help every user. Every user's learnings help you.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Claude Code Plugin](https://img.shields.io/badge/Claude_Code-Plugin-blueviolet)]()
-[![Version](https://img.shields.io/badge/version-3.1.0-green)]()
+[![Claude Desktop](https://img.shields.io/badge/Claude_Desktop-MCP-orange)]()
+[![Version](https://img.shields.io/badge/version-3.2.0-green)]()
 
 ---
 
@@ -128,13 +129,25 @@ Both auto-load every session. Personal rules always take priority. Community rul
 
 ## Architecture
 
-### Three Detection Layers
+### Three Detection Layers (Claude Code CLI)
 
 **Layer 1: Behavioral Protocol** — The playbook auto-loads as a rules file. Contains 19 protocol sections that instruct Claude how to capture, score, generalize, verify, and evolve learnings.
 
 **Layer 2: Language Detection Hook** (UserPromptSubmit) — Scans every user message for corrections, frustration, and positive reinforcement. Injects `[Learning signal]` reminders.
 
 **Layer 3: Outcome Tracking Hook** (PostToolUse) — Detects test/build/deploy results, retry patterns (3x+), edit churn (5x+), install failures, lint results.
+
+### MCP Server (Claude Desktop / Web)
+
+For non-CLI interfaces, the MCP server replicates the same sync loop via protocol primitives:
+
+**Startup pull** — `git pull` runs when Claude Desktop connects to the MCP server (server starts with the app).
+
+**Resource injection** — The playbook is exposed as `playbook://current`, pinnable to a Claude Desktop Project so rules load into every conversation automatically.
+
+**Tool-driven capture** — Claude calls `update_rule()` and `add_rule()` directly when the behavioral protocol triggers, replacing the hook-injected reminders.
+
+**Shutdown push + debounced push** — Any write schedules a 60s push; the server also pushes on disconnect. Equivalent to the `Stop` hook.
 
 ### Learning Levels
 
@@ -170,6 +183,8 @@ Both auto-load every session. Personal rules always take priority. Community rul
 
 ## Installation
 
+### Claude Code CLI
+
 ```bash
 # Add marketplace
 claude plugin marketplace add OutcomeFocusAi/claude-learn
@@ -180,7 +195,57 @@ claude plugin install claude-learn@outcomefocusai
 
 First session creates both playbooks automatically. Learning begins immediately.
 
+### Claude Desktop / Enterprise (MCP)
+
+**1. Install the MCP server**
+
+```bash
+# Clone the repo (or just copy mcp-server/)
+git clone https://github.com/OutcomeFocusAi/claude-learn.git
+cd claude-learn/mcp-server
+pip install -r requirements.txt
+```
+
+**2. Add to Claude Desktop config**
+
+Edit `%APPDATA%\Claude\claude_desktop_config.json` (Windows) or `~/Library/Application Support/Claude/claude_desktop_config.json` (Mac):
+
+```json
+{
+  "mcpServers": {
+    "claude-learn": {
+      "command": "python",
+      "args": ["/absolute/path/to/claude-learn/mcp-server/server.py"]
+    }
+  }
+}
+```
+
+Use `py` instead of `python` on Windows.
+
+**3. Create a Project in Claude Desktop**
+
+- Open Claude Desktop → New Project
+- Paste the contents of [`templates/project-system-prompt.md`](templates/project-system-prompt.md) as the project instructions
+- In the project context panel, add the `playbook://current` resource
+
+**4. Configure team sync (optional but recommended)**
+
+```bash
+# Create config file
+echo '{"team_repo": "https://github.com/YOUR_ORG/team-playbook.git"}' \
+  > ~/.claude/.claude-learn-config.json
+```
+
+The team repo should contain a `playbook.md` file. On first connect the server clones it; every session thereafter pulls on start and pushes on end.
+
+**Solo users:** skip step 4. The MCP server still serves the local playbook and all tools work — git sync is simply skipped.
+
+---
+
 ## Usage
+
+### Claude Code CLI
 
 **Invisible by default.** Claude learns silently. Use `/learn` when you want to see what's happening.
 
@@ -197,27 +262,46 @@ First session creates both playbooks automatically. Learning begins immediately.
 /learn export       Shareable format
 ```
 
+### Claude Desktop / Web (MCP tools)
+
+Claude calls these tools directly as part of its behavioral protocol. You can also invoke them by asking:
+
+| Ask Claude | What happens |
+|------------|-------------|
+| "What rules are you following?" | Calls `get_playbook()` |
+| "Add a rule about X" | Calls `add_rule()` |
+| "Sync your learnings" | Calls `sync_now()` |
+
 ## Files
 
-| File | Purpose | Auto-loaded |
-|------|---------|------------|
-| `~/.claude/rules/playbook.md` | Personal scored rules | **Yes** |
-| `~/.claude/rules/playbook-community.md` | Community rules | **Yes** |
-| `~/.claude/playbook-archive.jsonl` | Decayed rules | No |
-| `~/.claude/.learning-signals.jsonl` | Hook signals | No |
-| `~/.claude/.playbook-regression.json` | Regression tracker | No |
+| File | Purpose | CLI | Desktop |
+|------|---------|-----|---------|
+| `~/.claude/rules/playbook.md` | Scored rules (shared by both transports) | Auto-loaded | Via `get_playbook()` |
+| `~/.claude/rules/playbook-community.md` | Community rules | Auto-loaded | — |
+| `~/.claude/.claude-learn-config.json` | Team repo config | Read by hooks | Read by MCP server |
+| `~/.claude/.claude-learn-team/` | Local clone of team repo | CLI hooks | MCP server |
+| `~/.claude/.claude-learn-team.log` | Team sync log | Both | Both |
+| `~/.claude/playbook-archive.jsonl` | Decayed rules | No | No |
+| `~/.claude/.learning-signals.jsonl` | Hook signals | No | — |
+| `~/.claude/.playbook-regression.json` | Regression tracker | No | — |
+| `mcp-server/server.py` | MCP server for Desktop/Web | — | Entry point |
+| `templates/project-system-prompt.md` | Project instructions template | — | Paste into Project |
 
 ## FAQ
 
-**Will this slow me down?** No. Hooks < 200ms. Captures ~ 300 tokens each.
+**Will this slow me down?** No. CLI hooks < 200ms. MCP server adds ~1s on startup for git pull, then stays resident.
 
-**What if I close the tab?** Learnings write immediately to disk. No batching.
+**What if I close the tab?** Learnings write immediately to disk. No batching. The MCP server also pushes on disconnect.
 
 **Cross-project?** Yes. Context tags filter relevance. Context-aware decay handles the rest.
 
 **vs CLAUDE.md?** CLAUDE.md is static instructions you write. The playbook is dynamic rules Claude writes, scores, and prunes based on evidence. Use both.
 
-**How do I contribute rules?** Run `/learn contribute`. It selects your proven rules, generalizes them, and creates a GitHub issue. Or submit a PR directly to `templates/playbook-community.md`.
+**How do I contribute rules?** CLI: run `/learn contribute`. Desktop: ask Claude "contribute my proven rules" — it will draft a GitHub issue using the community format.
+
+**CLI and Desktop on the same team?** Yes. Both read/write `~/.claude/rules/playbook.md` and push to the same team git repo. A rule learned in a CLI session is available to a Desktop user on their next connect, and vice versa.
+
+**Does the MCP server work without a team repo?** Yes. Solo users get the full playbook experience — rules load, tools work, everything syncs locally. Just skip the `team_repo` config.
 
 ---
 
