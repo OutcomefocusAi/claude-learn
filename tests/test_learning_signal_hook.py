@@ -225,3 +225,82 @@ def test_tail_read_is_bounded_and_drops_the_partial_line(tmp_path):
 
 def test_tail_read_of_a_missing_file_is_empty(tmp_path):
     assert hook.tail_lines(tmp_path / "nope.jsonl", 1024) == []
+
+
+# --- 6. a work order is not a correction ---------------------------------
+#
+# The banner came back: 53 "unprocessed corrections" of which 45 were the
+# user's own scoped briefs. A brief is full of the words a correction uses --
+# "Do not deploy", "Do not modify code", "No more reviews" -- but it assigns
+# work rather than telling the assistant it got something wrong. These pin the
+# three shapes that produced the noise.
+
+BRIEF = (
+    "Identity\n"
+    "You are the release gatekeeper for PR #203.\n\n"
+    "Task\n"
+    "Wait for the Codex review of the exact current head: cf2cad5f.\n\n"
+    "Constraints\n"
+    "- Do not modify code, push, or re-run the reviewer.\n"
+    "- Do not merge until the verdict is in.\n\n"
+    "Output Format\n"
+    "Return only the verdict and the head it was taken against.\n"
+)
+
+CROSS_SESSION = (
+    '<cross-session-message from="uds:\\.\pipe\LOCAL\cc-msg-e0fb" from-name="agile-38" '
+    'from-mode="executor">Do not touch the migration. I own it.</cross-session-message>'
+)
+
+WORK_ORDER = (
+    "Close PR #45 now. No more reviews, fixes, CI redesign, or security-checker work.\n\n"
+    "First, read the actual GitHub state for the PR and report the head.\n"
+)
+
+
+@pytest.mark.parametrize("message,label", [
+    (BRIEF, "a structured brief with a constraints list"),
+    (CROSS_SESSION, "an agent-to-agent relay"),
+    (WORK_ORDER, "a work order that opens with 'No more'"),
+    ("We hit a deployment preflight blocker. Do not deploy, restart or stop any service.",
+     "a constraint sentence naming services"),
+    ("Owner confirmation - record this as a decision, not Q-47:\n\n"
+     "- Sector is public issuer metadata.\n- Do not reopen it.", "an owner decision"),
+    ("You are the sole owner of PR #44.\n\nOwner ruling:\n- Finish and push PR #44.\n"
+     "- Exclude the field for now.", "an ownership ruling"),
+    ("Delete only the confirmed merged remote branches. Do not delete anything else.",
+     "a scoped deletion order"),
+    ("Continue with Option 1. Use the owner database URL only; keep its value redacted.",
+     "a continuation order"),
+])
+def test_an_instruction_is_not_a_correction(message, label):
+    assert hook.detect_signal(message) is None, label
+
+
+@pytest.mark.parametrize("message,label", [
+    ("no, dont do that - use the other approach", "the plainest correction there is"),
+    ("No, don't do it that way.", "a negation with an anaphor"),
+    ("that's the wrong file", "naming the work wrong"),
+    ("stop doing that", "an explicit stop"),
+    ("I already told you to use the other approach", "a repeat"),
+    ("why did you change the schema?", "questioning an action taken"),
+    ("actually, use the other one", "a reversal"),
+    ("Correction to the PR #47 fix: do not commit or push yet. The two-revision "
+     "scenario must be exercised first.", "a brief that announces itself as a correction"),
+])
+def test_a_real_correction_still_counts(message, label):
+    signal = hook.detect_signal(message)
+
+    assert signal is not None, label
+    assert signal["type"] in {"correction", "frustration"}, label
+
+
+def test_windows_line_endings_do_not_hide_a_brief():
+    assert hook.detect_signal(BRIEF.replace("\n", "\r\n")) is None
+
+
+def test_a_brief_is_recognised_by_its_sections_not_its_length():
+    short_brief = "Identity\nYou own PR #9.\n\nTask\nDo not merge it yet.\n"
+
+    assert len(short_brief) < hook.MAX_HUMAN_PROMPT_CHARS
+    assert hook.detect_signal(short_brief) is None

@@ -59,21 +59,27 @@ INJECTED_MARKERS = (
     "[learning signal:",
     "[learning checkpoint:",
     "session-start hook",
+    "<cross-session-message",
 )
 MAX_HUMAN_PROMPT_CHARS = 2000
 
 # ── Detection patterns ─────────────────────────────────────────────────────
 
 CORRECTION_PATTERNS = [
-    r"(?:^|\.\s+)no[,.\s!]",       # "No, ..." at start/after sentence — not "I have no idea"
+    # "No," or "No!" reverses something. Bare "No more reviews, fixes" and
+    # "no." opened work orders, which assign work rather than correct it.
+    r"(?:^|[.!?]\s+)no[,!]",
     r"\bnot that\b",
     # Asserting the work is wrong, not asking what is wrong with something.
     # Bare \bwrong\b matched "what's wrong with the build?", which is a question.
     r"\b(?:that'?s|thats|this is|it'?s|its|you'?re|youre)\s+(?:the\s+)?wrong\b",
     r"\bwrong\s+(?:one|way|file|approach|thing|place|answer|order|direction)\b",
-    # Imperative "don't ..." only. Bare \bdon't\b matched "I don't need this",
-    # "we don't have one", "if you don't" -- the largest single false positive.
-    r"(?:^|[.!?]\s+)(?:don'?t|do not)\s+\w+",
+    # Imperative "don't" pointing AT SOMETHING ALREADY HAPPENING: "don't do
+    # that", "do not do it that way". A constraint naming its object instead --
+    # "Do not deploy", "Do not modify code", "Do not delete anything else" --
+    # is a scope limit inside a brief, which is an instruction, not a
+    # correction. Forty-five of fifty-three signals in one batch were those.
+    r"(?:^|[.!?]\s+)(?:don'?t|do not)\s+(?:do\s+)?(?:that|this|it|again)\b",
     r"\bstop\s+(doing|that|it)\b",
     r"\bi said\b",
     r"\bi told you\b",
@@ -88,6 +94,10 @@ CORRECTION_PATTERNS = [
     # Sentence-opening "Actually, ..." reverses a direction. Mid-sentence
     # "it's actually fine" does not.
     r"(?:^|[.!?]\s+)actually[,\s]",
+    # "Correction to the PR #47 fix: ..." is a correction wearing a brief's
+    # clothes, and it is the one shape that must survive the work-order
+    # exclusion below.
+    r"^correction\b|^\W{0,3}correction to\b",
 ]
 
 POSITIVE_PATTERNS = [
@@ -117,6 +127,59 @@ FRUSTRATION_PATTERNS = [
 ]
 
 
+#: Section headings in the scoped briefs this user writes. Two or more of them
+#: at the start of a line means the message assigns work.
+BRIEF_SECTIONS = (
+    "identity", "task", "context", "constraints", "verification",
+    "output format", "required discovery", "scope", "deliverable",
+    "context boundary check", "required design", "required tests",
+)
+
+
+#: A negation that opens a short message is feedback on the work in hand.
+#: Beyond this, it is a constraint inside something longer that assigns work.
+SHORT_ENOUGH_TO_BE_FEEDBACK = 200
+
+
+def leading_imperative_negation(message: str) -> bool:
+    """True for "Don't use the cache here" and false for a brief's constraints.
+
+    The discriminator is where the negation sits, not what it forbids. Feedback
+    leads with it and then stops; a work order describes a situation or assigns
+    a task first and constrains it afterwards.
+    """
+    if len(message.strip()) > SHORT_ENOUGH_TO_BE_FEEDBACK:
+        return False
+    # The negation has to OPEN the message, after at most a short lead-in.
+    # "I don't need this file" and "we don't have a staging environment" are
+    # statements about the world; "Don't use the cache here" is an order about
+    # the work in hand, and only the second one is feedback.
+    opener = r"^[\W]*(?:ok|okay|no|please|hey|and|but)?[,\s]*(?:don'?t|do not)\s+\w+"
+    return bool(re.match(opener, message.strip(), re.I))
+
+
+def announces_a_correction(message: str) -> bool:
+    """True when the message says outright that it is correcting something.
+
+    A correction is allowed to be long and structured. This is the escape
+    hatch that keeps `is_a_work_order` from swallowing one.
+    """
+    return bool(re.match(r"\s*\W{0,3}correction\b", message, re.I))
+
+
+def is_a_work_order(message: str) -> bool:
+    """True when the message assigns work rather than correcting work done.
+
+    The user writes scoped briefs with headed sections and constraint lists,
+    and those are full of the words a correction uses. An instruction is not
+    feedback: counting it as one buried eight real corrections under
+    forty-five work orders and trained the reader to ignore the banner.
+    """
+    lines = [line.strip().lower().lstrip("#*- ").rstrip(":*") for line in message.splitlines()]
+    found = {line for line in lines if line in BRIEF_SECTIONS}
+    return len(found) >= 2
+
+
 def is_injected(message: str) -> bool:
     """True if this prompt was generated for the user rather than typed by them.
 
@@ -133,11 +196,14 @@ def is_injected(message: str) -> bool:
 
 def detect_signal(message: str) -> dict | None:
     """Detect learning signals in user message."""
+    message = message.replace("\r\n", "\n")
     msg_lower = message.lower().strip()
 
     if len(msg_lower) < 5 or msg_lower.startswith("/"):
         return None
     if is_injected(message):
+        return None
+    if is_a_work_order(message) and not announces_a_correction(message):
         return None
 
     for pattern in FRUSTRATION_PATTERNS:
@@ -147,6 +213,9 @@ def detect_signal(message: str) -> dict | None:
     for pattern in CORRECTION_PATTERNS:
         if re.search(pattern, msg_lower):
             return {"type": "correction", "severity": "high", "message_preview": message[:120]}
+
+    if leading_imperative_negation(message):
+        return {"type": "correction", "severity": "high", "message_preview": message[:120]}
 
     for pattern in POSITIVE_PATTERNS:
         if re.search(pattern, msg_lower):
