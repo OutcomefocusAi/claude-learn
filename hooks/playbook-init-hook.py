@@ -5,14 +5,18 @@
 - Applies context-aware decay (rules only lose points when relevant)
 - Detects regression patterns (proven rules no longer being confirmed)
 - Syncs community playbook from plugin templates on update
+- Syncs team playbook from shared git repo (if configured)
 - Reports status line
 
-Must complete in <200ms. Must always exit 0.
+Must always exit 0.
 """
 
 import json
 import os
 import re
+import shutil
+import socket
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,6 +32,140 @@ REGRESSION_FILE = Path.home() / ".claude" / ".playbook-regression.json"
 
 # Template directory — relative to this script (in plugin cache)
 TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
+
+# Team sync
+SIZE_LIMIT = 38_000
+CONFIG_FILE = Path.home() / ".claude" / ".claude-learn-config.json"
+TEAM_DIR = Path.home() / ".claude" / ".claude-learn-team"
+TEAM_LOG = Path.home() / ".claude" / ".claude-learn-team.log"
+
+
+def load_config() -> dict:
+    """Load ~/.claude/.claude-learn-config.json. Returns {} if missing or malformed."""
+    if not CONFIG_FILE.exists():
+        return {}
+    try:
+        return json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def log_team(msg: str):
+    """Append a timestamped line to the team sync log."""
+    try:
+        with open(TEAM_LOG, "a", encoding="utf-8") as f:
+            f.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}\n")
+    except OSError:
+        pass
+
+
+def extract_rules_as_dict(content: str) -> dict:
+    """Extract scored rules from Behavioral Rules section as {name: (score, full_line)}."""
+    result = {}
+    rules_start = content.find("## Behavioral Rules")
+    if rules_start == -1:
+        return result
+    rules_content = content[rules_start:]
+    pattern = r'\*\*\[(\d+\.?\d*)\]\s+([^*]+)\*\*:'
+    for match in re.finditer(pattern, rules_content):
+        score = float(match.group(1))
+        name = match.group(2).strip()
+        abs_pos = rules_start + match.start()
+        line_start = content.rfind('\n', 0, abs_pos) + 1
+        line_end = content.find('\n', abs_pos)
+        if line_end == -1:
+            line_end = len(content)
+        full_line = content[line_start:line_end]
+        result[name] = (score, full_line)
+    return result
+
+
+def merge_playbooks(local_content: str, remote_content: str) -> str:
+    """Merge local playbook into remote. Score wins for overlapping rules.
+    Local-only rules (not yet in remote) are appended before the Workflows section."""
+    local_rules = extract_rules_as_dict(local_content)
+    remote_rules = extract_rules_as_dict(remote_content)
+
+    result = remote_content
+
+    # For overlapping rules, keep whichever has the higher score
+    for name, (local_score, local_line) in local_rules.items():
+        if name in remote_rules:
+            remote_score, remote_line = remote_rules[name]
+            if local_score > remote_score:
+                result = result.replace(remote_line, local_line, 1)
+
+    # Append rules that only exist locally (new learning not yet in team repo)
+    new_lines = [
+        line for name, (_, line) in local_rules.items()
+        if name not in remote_rules
+    ]
+    if new_lines:
+        markers = ["## Workflows", "## Uncertainty Tracker", "## Capability Frontier", "## Meta-Stats"]
+        insert_pos = len(result)
+        for marker in markers:
+            pos = result.find(f"\n{marker}")
+            if pos != -1:
+                insert_pos = pos
+                break
+        result = result[:insert_pos] + "\n" + "\n".join(new_lines) + result[insert_pos:]
+
+    return result
+
+
+def sync_from_team_repo(config: dict) -> str:
+    """Pull team repo and merge into local playbook. Returns status string for display."""
+    repo_url = config.get("team_repo", "").strip()
+    if not repo_url:
+        return ""
+
+    try:
+        if not TEAM_DIR.exists():
+            r = subprocess.run(
+                ["git", "clone", "--depth=1", repo_url, str(TEAM_DIR)],
+                capture_output=True, text=True, timeout=10,
+            )
+            if r.returncode != 0:
+                log_team(f"clone failed: {r.stderr[:200]}")
+                return ""
+            log_team(f"cloned {repo_url}")
+        else:
+            r = subprocess.run(
+                ["git", "-C", str(TEAM_DIR), "pull", "--rebase", "--quiet"],
+                capture_output=True, text=True, timeout=8,
+            )
+            if r.returncode != 0:
+                log_team(f"pull failed: {r.stderr[:200]}")
+            else:
+                log_team("pulled ok")
+
+        team_playbook = TEAM_DIR / "playbook.md"
+        if not team_playbook.exists():
+            log_team("no playbook.md in team repo")
+            return ""
+
+        remote_content = team_playbook.read_text(encoding="utf-8")
+
+        if PLAYBOOK_FILE.exists():
+            local_content = PLAYBOOK_FILE.read_text(encoding="utf-8")
+            merged = merge_playbooks(local_content, remote_content)
+        else:
+            merged = remote_content
+
+        if len(merged) > SIZE_LIMIT:
+            log_team(f"merged content {len(merged)} chars — at 38k cap")
+            PLAYBOOK_FILE.write_text(merged[:SIZE_LIMIT], encoding="utf-8")
+            return "team synced [at 38k cap]"
+
+        PLAYBOOK_FILE.write_text(merged, encoding="utf-8")
+        return "team synced"
+
+    except subprocess.TimeoutExpired:
+        log_team("sync timed out — using local version")
+        return ""
+    except Exception as e:
+        log_team(f"sync error: {e}")
+        return ""
 
 
 def get_template(name: str) -> str:
@@ -321,6 +459,11 @@ def main():
         # Sync community playbook
         sync_community_playbook()
 
+        # Sync team playbook (if configured) — runs after community sync so merge
+        # starts from the most current local state
+        config = load_config()
+        team_status = sync_from_team_repo(config)
+
         if not ARCHIVE_FILE.exists():
             ARCHIVE_FILE.write_text("", encoding="utf-8")
 
@@ -344,6 +487,9 @@ def main():
 
         if session_ctx:
             parts.append(f"(ctx: {', '.join(sorted(session_ctx))})")
+
+        if team_status:
+            parts.append(f"| {team_status}")
 
         if had_archives:
             parts.append("| decayed rules archived")
